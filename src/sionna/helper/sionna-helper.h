@@ -2,8 +2,6 @@
 #ifndef SIONNA_HELPER_H
 #define SIONNA_HELPER_H
 
-#include "ns3/connector.h"
-
 namespace ns3 {
 
 /* ... */
