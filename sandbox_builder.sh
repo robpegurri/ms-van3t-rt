@@ -145,6 +145,12 @@ cp src/automotive/propagation-extended/cni-urbanmicrocell-propagation-loss-model
 cp src/automotive/propagation-extended/cni-urbanmicrocell-propagation-loss-model.h src/propagation/model/
 cp src/automotive/propagation-extended/CMakeLists.txt src/propagation/
 
+echo "Copying propagation files for NVIDIA Sionna..."
+sleep 1
+cp src/sionna/files/propagation/CMakeLists.txt src/propagation/
+cp src/sionna/files/propagation/propagation-delay-model.cc src/propagation/model/
+cp src/sionna/files/propagation/propagation-loss-model.cc src/propagation/model/
+
 echo "Extending Signal Info features..."
 sleep 1
 cp src/automotive/model/SignalInfo/rssi-tag.cc src/wifi/model/

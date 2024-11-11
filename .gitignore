@@ -90,7 +90,7 @@
 /src/visualizer/ 
 /src/buildings/          
 /src/internet-apps/   
-/src/propagation/             
+# /src/propagation/             
 /src/wave/ 
 /src/click/              
 /src/lr-wpan/         

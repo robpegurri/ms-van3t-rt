@@ -25,5 +25,6 @@ build_lib(
   ${libmobility}
   ${libinternet}
   ${libvehicle-visualizer}
+  ${libsionna}
   TEST_SOURCES ${test_sources}
 )
