@@ -25,7 +25,7 @@ if gpus:
 tf.get_logger().setLevel('ERROR')
 
 # Scene, change here the path to your scenario
-scene = load_scene("Sionna Codeblocks/CIRCLE/scene.xml")
+scene = load_scene("CIRCLE/scene.xml")
 
 # Radio settings
 scene.frequency = 5.89e9 # in Hz
@@ -33,7 +33,6 @@ scene.synthetic_array = True # If set to False, ray tracing will be done per ant
 # Antenna settings
 antenna_displacement = [0, 0, 1.5]  # location of the antenna wrt the car mesh
 element_spacing = SPEED_OF_LIGHT / scene.frequency / 2 
-#array = PlanarArray(1, 2, element_spacing, element_spacing, "tr38901", "V")
 array = PlanarArray(1, 1, element_spacing, element_spacing, "iso", "V") # 1x1 isotropic antenna
 # SUMO update granularity
 position_threshold = 3  # Update object position every position_threshold [meters]
@@ -46,7 +45,7 @@ num_samples=1e4
 udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # ... and bind it to the correct (address, port)
 #udp_socket.bind(("127.0.0.1", 8103)) # use this if ns3 in localhost, chose whatever port you prefer
-udp_socket.bind(("0.0.0.0", 8103)) # if you use an external server with Sionna and ns3 in another machine
+udp_socket.bind(("0.0.0.0", 8104)) # if you use an external server with Sionna and ns3 in another machine
 
 # Chaches and other variables
 SUMO_live_location_db = {} # Stores the live location of each vehicle in SUMO
@@ -106,7 +105,7 @@ def ManageLocationMessage(message):
             rays_cache = {}
             #print("Pathloss cache cleared.")
             # Print the updated car's information for logging
-            print(f"car_{car} - Position: [{new_x}, {new_y}, {new_z}] - Angle: {new_angle}")
+            #print(f"car_{car} - Position: [{new_x}, {new_y}, {new_z}] - Angle: {new_angle}")
             # Apply changes to the scene
             if scene.get(f"car_{car}"):  # Make sure the object exists in the scene
                 from_sionna = scene.get(f"car_{car}")
@@ -115,7 +114,7 @@ def ManageLocationMessage(message):
                 #new_orientation = (new_angle*np.pi/180, 0, 0)
                 #from_sionna.orientation = type(from_sionna.orientation)(new_orientation, device=from_sionna.orientation.device)
                 
-                print(f"Updated car_{car} position in the scene.")
+                #print(f"Updated car_{car} position in the scene.")
             else:
                 print(f"ERROR: no car_{car} in the scene, use Blender to check")
 
@@ -243,12 +242,12 @@ def computeRays():
         if scene.get(tx_antenna_name) is None:
             scene.add(Transmitter(tx_antenna_name, position=tx_position, orientation=[0, 0, 0]))
             scene.tx_array = scene.tx_array
-            print(f"Added TX antenna for car_{car_id}: {tx_antenna_name}")
+            #print(f"Added TX antenna for car_{car_id}: {tx_antenna_name}")
 
         if scene.get(rx_antenna_name) is None:
             scene.add(Receiver(rx_antenna_name, position=rx_position, orientation=[0, 0, 0]))
             scene.rx_array = scene.rx_array
-            print(f"Added RX antenna for car_{car_id}: {rx_antenna_name}")
+            #print(f"Added RX antenna for car_{car_id}: {rx_antenna_name}")
 
     # Compute paths
     paths = scene.compute_paths(max_depth=max_depth, num_samples=num_samples, diffraction=True, scattering=True)
@@ -273,7 +272,7 @@ def computeRays():
                             rays_cache[current_source_car_name] = {}
                         # Cache the matched paths for this source-target pair
                         rays_cache[current_source_car_name][current_target_car_name] = matched_paths_for_source[current_target_car_name]
-                        print(f"Cached paths for source {current_source_car_name} to target {current_target_car_name}")
+                        #print(f"Cached paths for source {current_source_car_name} to target {current_target_car_name}")
                     else:
                         # Force an update if the source or target wasn't matched
                         for car_id in Sionna_location_db:
@@ -314,9 +313,11 @@ def GetPathloss(car1_id, car2_id):
         computeRays()
         
     path_coefficients = rays_cache[car1_id][car2_id]["path_coefficients"]
-    magnitudes = np.abs(path_coefficients)
-    total_cir = np.sum(magnitudes ** 2)
-    
+    sum = np.sum(path_coefficients)
+    abs = np.abs(sum)
+    square = abs ** 2
+    total_cir = square
+
     # Calculate path loss in dB
     if total_cir > 0:
         path_loss = -10 * np.log10(total_cir)
@@ -418,7 +419,8 @@ def ManageLOSRequest(message):
         return None
 
 # Startpoint
-print("Sionna is now ready to handle messages... waiting")
+freq = scene.frequency/1e9
+print(f"Sionna is now ready to handle messages for {freq}GHz... waiting")
 
 while True:
     # Receive data from the socket
@@ -434,7 +436,8 @@ while True:
     if message.startswith("calc_request:"):
         pathloss = ManagePathlossRequest(message)
         if pathloss is not None:
-            # Use pathloss + 23 for 80211p calibration
+            # Use pathloss + txPower (dBm) for 80211p
+            # response = "CALC_DONE:" + str(pathloss + 23)
             response = "CALC_DONE:" + str(pathloss)
             udp_socket.sendto(response.encode(), address)
     
